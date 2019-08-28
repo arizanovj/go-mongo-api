@@ -31,11 +31,13 @@ type Log struct {
 //Create a log
 func (log *Log) Create() (*mongo.InsertOneResult, error) {
 	collection := log.Env.MDB.Database(log.Env.DBName).Collection(collection)
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	result, err := collection.InsertOne(ctx, log)
 	return result, err
 }
 
+//Validate the request
 func (log *Log) Validate() bool {
 	return true
 }

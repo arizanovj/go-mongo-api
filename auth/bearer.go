@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -25,17 +26,23 @@ type Bearer struct {
 
 var collection = "user"
 
-func (b *Bearer) tokenValid() bool {
+//validqate the token provided in the bearer header
+func (b *Bearer) tokenValid() error {
 	var bearer Bearer
 	collection := b.Env.MDB.Database(b.Env.DBName).Collection(collection)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	err := collection.FindOne(ctx, bson.M{"_id": b.ID}).Decode(&bearer)
 	if err != nil {
-		return false
+		return errors.New("no such API user")
 	}
-	return b.hashFromString(b.SecretKey) == bearer.SecretKey
+	if b.hashFromString(b.SecretKey) == bearer.SecretKey {
+		return nil
+	}
+	return errors.New("key is not authenticated")
 }
 
+//create sha256 hash from string
 func (b *Bearer) hashFromString(stringToHash string) string {
 	h := hmac.New(sha256.New, []byte([]byte(stringToHash)))
 	return hex.EncodeToString(h.Sum(nil))
@@ -63,11 +70,13 @@ func (b *Bearer) Validate(w http.ResponseWriter, r *http.Request, next http.Hand
 	}
 	b.ID, b.SecretKey = key, s[1]
 
-	if b.tokenValid() {
+	err = b.tokenValid()
+
+	if err == nil {
 		next(w, r)
 		return
 	}
-	fmt.Fprint(w, "Unauthorized access to this resource")
+	fmt.Fprint(w, err)
 	w.WriteHeader(http.StatusUnauthorized)
 
 }

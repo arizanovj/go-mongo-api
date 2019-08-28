@@ -7,6 +7,7 @@ import (
 	"reflect"
 )
 
+//Response struct representing API response
 type Response struct {
 	Data    interface{}         `json:"data"`
 	Message string              `json:"message"`
@@ -15,7 +16,8 @@ type Response struct {
 	W       http.ResponseWriter `json:"-"`
 }
 
-func (response *Response) Json() {
+//JSON return
+func (response *Response) JSON() {
 	response.W.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	fmt.Printf("%+v\n", reflect.TypeOf(response.Err))
 	response.W.WriteHeader(response.Code)

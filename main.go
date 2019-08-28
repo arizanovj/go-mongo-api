@@ -36,6 +36,12 @@ func main() {
 	}
 	//check congfigs
 
+	if !viper.IsSet("db.user") {
+		log.Fatal("missing db user")
+	}
+	if !viper.IsSet("db.password") {
+		log.Fatal("missing db password")
+	}
 	if !viper.IsSet("db.host") {
 		log.Fatal("missing db host")
 	}
@@ -45,14 +51,22 @@ func main() {
 	if !viper.IsSet("db.name") {
 		log.Fatal("missing db name")
 	}
-
+	if !viper.IsSet("db.auth") {
+		log.Fatal("missing db auth")
+	}
+	dbUser := viper.GetString("db.user")
+	dbPassword := viper.GetString("db.password")
 	dbHost := viper.GetString("db.host")
 	dbPort := viper.GetString("db.port")
 	dbName := viper.GetString("db.name")
+	dbAuth := viper.GetString("db.auth")
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	clientOptions := options.Client().ApplyURI("mongodb://" + dbHost + ":" + dbPort)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	connectionURI := "mongodb://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?authSource=" + dbAuth
+	clientOptions := options.Client().ApplyURI(connectionURI)
 	client, _ := mongo.Connect(ctx, clientOptions)
+	defer client.Disconnect(ctx)
+	defer cancel()
 
 	env := env.Env{
 		MDB:    client,
@@ -65,6 +79,7 @@ func main() {
 		negroni.HandlerFunc(bearerAuth.Validate),
 		negroni.Wrap(http.HandlerFunc(logHandler.Create)),
 	))
+
 	http.Handle("/", r)
 
 	http.ListenAndServe(":9001", nil)

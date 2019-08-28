@@ -8,10 +8,12 @@ import (
 	"github.com/arizanovj/go-mongo-api/model"
 )
 
+//Log handler
 type Log struct {
 	Env *env.Env
 }
 
+//Create log handler
 func (a *Log) Create(w http.ResponseWriter, r *http.Request) {
 
 	response := &Response{W: w}
@@ -22,7 +24,7 @@ func (a *Log) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response.Err = err.Error()
 		response.Code = 400
-		response.Json()
+		response.JSON()
 		return
 	}
 
@@ -31,11 +33,11 @@ func (a *Log) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response.Err = err.Error()
 		response.Code = 400
-		response.Json()
+		response.JSON()
 		return
 	}
 	response.Data = data
 	response.Code = 200
-	response.Json()
+	response.JSON()
 
 }
